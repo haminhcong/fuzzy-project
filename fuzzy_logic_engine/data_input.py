@@ -1,0 +1,6 @@
+TRAFFIC_LAMP = 'traffic_lamp'
+LAMP_RED = 'RED'
+LAMP_GREEN = 'GREEN'
+LAMP_YELLOW = 'YELLOW'
+
+BARRIER = 'barrier'

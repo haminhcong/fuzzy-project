@@ -23,63 +23,49 @@
 # Camera module will keep track of sprite offset.
 
 # Map file.
-
+import math
+import random
 import pygame
-
-# Map filenames.
-
-map_files = []
-map_tile = ['X.png', 'I.png', 'L.png', 'T.png', 'O.png', 'null.png']
-
-# Map to tile.
-crossing = 0
-straight = 1
-turn = 2
-split = 3
-deadend = 4
-null = 5
-
-# tilemap.
-map_1 = [
-    [2, 1, 3, 1, 1, 3, 1, 1, 1, 4],
-    [1, 5, 1, 5, 4, 0, 1, 2, 5, 4],
-    [1, 4, 3, 1, 3, 3, 1, 3, 2, 1],
-    [3, 1, 3, 1, 3, 5, 4, 5, 1, 1],
-    [3, 2, 1, 5, 1, 5, 3, 1, 0, 3],
-    [1, 2, 0, 1, 0, 3, 0, 4, 1, 1],
-    [1, 5, 1, 4, 2, 1, 1, 2, 3, 1],
-    [1, 2, 0, 1, 3, 3, 0, 0, 2, 1],
-    [1, 1, 4, 2, 2, 5, 1, 2, 1, 3],
-    [2, 3, 1, 3, 1, 1, 3, 1, 1, 2]
-]
-
-# tilemap rotation, x90ccw
-map_1_rot = [
-    [1, 1, 0, 1, 1, 0, 1, 1, 1, 3],
-    [0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
-    [0, 1, 2, 1, 0, 2, 1, 2, 0, 0],
-    [1, 1, 0, 1, 3, 0, 0, 0, 0, 0],
-    [1, 0, 0, 0, 0, 0, 1, 1, 0, 3],
-    [0, 2, 0, 1, 0, 0, 0, 3, 0, 0],
-    [0, 0, 0, 1, 3, 0, 0, 1, 3, 0],
-    [0, 1, 0, 1, 0, 2, 0, 0, 3, 0],
-    [0, 0, 2, 1, 3, 0, 0, 2, 1, 3],
-    [2, 2, 1, 2, 1, 1, 2, 1, 1, 3]
-]
+from loader import load_image
 
 
-class Map(pygame.sprite.Sprite):
-    def __init__(self, tile_map, y, x, rot):
+class AddBarrierButton(pygame.sprite.Sprite):
+    FAR = 'far'
+    MEDIUM = 'medium'
+    NEAR = 'near'
+
+    def __init__(self, type, init_x, init_y, text):
         pygame.sprite.Sprite.__init__(self)
-        self.image = map_files[tile_map]
+        # traffic lamp position
+        self.x = init_x
+        self.y = init_y
+        self.text = text
+        self.type = type
+        self.image = load_image('barrier_' + self.type + '.png')
         self.rect = self.image.get_rect()
+        self.rect_w = self.rect.size[0]
+        self.rect_h = self.rect.size[1]
+        self.rect.topleft = self.x, self.y
 
-        if rot != 0:
-            self.image = pygame.transform.rotate(self.image, rot * 90)
-
-        self.x = x
-        self.y = y
-
-    # Realign the map
     def update(self, cam_x, cam_y):
-        self.rect.topleft = self.x - cam_x, self.y - cam_y
+        pass
+
+    def is_clicked(self, click_x, click_y):
+        if self.x <= click_x <= self.x + self.rect_w \
+                and self.y <= click_y <= self.y + self.rect_h:
+            return True
+        else:
+            return False
+
+    def render_text(self, screen):
+        game_font = pygame.font.SysFont(None, 20)
+        # render text
+        label = game_font.render(self.text, 1,
+                                 (40, 40, 40))
+        label_rect = label.get_rect(
+            center=(self.rect.topleft[0] + self.rect_w / 2,
+                    self.rect.topleft[1] + self.rect_h / 2)
+        )
+        screen.blit(label,label_rect)
+
+        # def handle_click(self, game):

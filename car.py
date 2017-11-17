@@ -25,10 +25,13 @@
 # Player module, the car.
 import math
 import pygame
-from math import atan2, degrees, pi
+from math import atan2, degrees, pi, sqrt
 import maps
+from traffic_lamp import TrafficLamp
+from fuzzy_logic_engine import data_input, fuzzy_engine
 from loader import load_image
 from maps import MAP_NAVS
+from utils import calculate_angel, angle_diff, add_angle
 
 PI = 3.14
 
@@ -40,21 +43,23 @@ CENTER_Y = -1
 
 # Rotate car.
 def rot_center(image, rect, angle):
+    # print("angle: " + str(angle))
+    # return image, rect
     """rotate an image while keeping its center"""
     rot_image = pygame.transform.rotate(image, angle)
     rot_rect = rot_image.get_rect(center=rect.center)
     return rot_image, rot_rect
 
 
-def calculate_angel(point_x, point_y, target_x, target_y):
-    neg_dir = math.atan2(point_y - target_y, target_x - point_x) * 180 / PI
-    if neg_dir < 0:
-        neg_dir += 360
-    if neg_dir < 90:
-        dir = neg_dir + 360 - 90
-    else:
-        dir = neg_dir - 90
-    return dir
+# def calculate_angel(point_x, point_y, target_x, target_y):
+#     neg_dir = math.atan2(point_y - target_y, target_x - point_x) * 180 / PI
+#     if neg_dir < 0:
+#         neg_dir += 360
+#     if neg_dir < 90:
+#         dir = neg_dir + 360 - 90
+#     else:
+#         dir = neg_dir - 90
+#     return dir
 
 
 # define car as Player.
@@ -72,21 +77,22 @@ class Car(pygame.sprite.Sprite):
         self.area = self.screen.get_rect()
         self.x = init_x
         self.y = init_y
-        self.rect.topleft = 600 - self.rect_w / 2, 300 - self.rect_h / 2
-
+        # self.rect.topleft = 600 - self.rect_w / 2, 300 - self.rect_h / 2
+        self.rect.center = 600, 300
         self.dir = init_dir
         self.image, self.rect = rot_center(self.image_orig, self.rect,
                                            self.dir)
         self.speed = 0.0
         # self.maxspeed = 11.5
-        self.maxspeed = 3
+        self.maxspeed = 1.5
         self.minspeed = -1.85
         self.acceleration = 0.095
         self.deacceleration = 0.12
         self.softening = 0.04
         self.steering = 1.60
-        self.dir_factor = 0.05
-        self.current_nav_index = 0
+        self.dir_factor = 0.1
+        # self.line_index = self.current_line_index
+        self.current_line_index = 0  # index of current line in map which this car is in
 
     def impact(self):
         if self.speed > 0:
@@ -135,112 +141,166 @@ class Car(pygame.sprite.Sprite):
                                            self.dir)
 
     def find_way_direction(self):
-        next_nav_index = self.current_nav_index + 1
+        next_nav_index = self.current_line_index + 1
         next_nav_x, next_nav_y = \
             MAP_NAVS[next_nav_index][0], MAP_NAVS[next_nav_index][1]
         # print(str(self.x) + " : " + str(self.y) + " : " + str(
         #     next_nav_x) + " : " + str(next_nav_y))
         return calculate_angel(self.x, self.y, next_nav_x, next_nav_y)
 
-    def find_new_dir(self, screen):
-        max_dir_length = 0
-        max_dir_way = self.dir
-        max_coor_x = self.x
-        max_coor_y = self.y
-        for dir in range(int(self.dir) + MAX_RADAR_RIGHT_ANGLE,
-                         int(self.dir) + MAX_RADAR_LEFT_ANGLE + 1):
-            # print(dir)
-            max_way_length = 0
-            check_coor_x = self.x
-            check_coor_y = self.y
-            for distance in range(0, MAX_RADAR_RADIUS):
-                check_coor_x = self.x + distance * math.cos(
-                    math.radians(270 - dir))
-                check_coor_y = self.y + distance * math.sin(
-                    math.radians(270 - dir))
-                try:
-                    check_color = screen.get_at(
-                        (int(check_coor_x), int(check_coor_y)))
-                    if 160 < check_color.r < 190 \
-                            and 160 < check_color.g < 190 \
-                            and 160 < check_color.b < 190:
-                        max_way_length += 1
-                    else:
-                        break
-                except Exception as e:
-                    pass
-
-            if max_way_length > max_dir_length:
-                max_dir_way = dir
-                max_dir_length = max_way_length
-                max_coor_x = check_coor_x
-                max_coor_y = check_coor_y
-        # print(max_dir_length)
-        # print(max_coor_x)
-        # print(max_coor_y)
-        # print(
-        #     str(self.x) + ":" + str(self.y) + ":" + str(max_dir_length) + ":" +
-        #     str(max_dir_way))
-        # print()
-        return max_dir_way
-
-    def update_map_nav_index(self):
-        next_nav_index = self.current_nav_index + 1
+    def update_map_line_index(self):
+        next_nav_index = self.current_line_index + 1
         next_nav_x, next_nav_y = \
             MAP_NAVS[next_nav_index][0], MAP_NAVS[next_nav_index][1]
         if (abs(self.x - next_nav_x) < self.maxspeed and
                     abs(self.y - next_nav_y) < self.maxspeed):
-            self.current_nav_index = next_nav_index
+            self.current_line_index = next_nav_index
 
     def change_dir(self, target_dir):
-        next_nav_index = self.current_nav_index + 1
+        # self.dir = target_dir
+        next_nav_index = self.current_line_index + 1
         next_nav_x, next_nav_y = \
             MAP_NAVS[next_nav_index][0], MAP_NAVS[next_nav_index][1]
-        distance_to_next_nav = math.sqrt(math.pow((self.x - next_nav_x), 2) + \
-                                         math.pow(self.y - next_nav_y, 2))
-        dir_before_change = str(self.dir - target_dir)
-        if abs(self.dir - target_dir) > 2:
+
+        if abs(angle_diff(self.dir, target_dir)) > 2:
+            # print("car:" + str(self.dir) + " way: " + str(target_dir))
+            # print("angle diff: " + str(angle_diff(self.dir, target_dir)))
             # self.dir -= self.dir_factor * \
             #             float(self.dir - target_dir) * self.speed / \
             #             distance_to_next_nav
-            if self.dir > target_dir:
-                angle = self.dir_factor * float(self.dir - target_dir)
-                change_dir = angle if angle < 2 else 2
-                self.dir -= change_dir
+            if angle_diff(self.dir, target_dir) >= 0:
+                angle = self.dir_factor * \
+                        float(angle_diff(self.dir, target_dir))
+                if abs(angle < 4):
+                    change_dir = angle
+                elif angle > 4:
+                    change_dir = 4
+                else:
+                    change_dir = -4
+                self.dir = add_angle(self.dir, change_dir)
             else:
-                angle = self.dir_factor * float(target_dir - self.dir)
-                change_dir = angle if angle < 2 else 2
-                self.dir += change_dir
-        dir_after_change = str(self.dir - target_dir)
-        if (self.dir - target_dir)>10:
-            print(
-                "before change:" + dir_before_change +
-                "- after change:" + dir_after_change)
+                angle = self.dir_factor * \
+                        float(angle_diff(self.dir, target_dir))
+                if abs(angle < 4):
+                    change_dir = angle
+                elif angle > 4:
+                    change_dir = 4
+                else:
+                    change_dir = -4
+                self.dir = add_angle(self.dir, change_dir)
+                # print("after update: car:" + str(self.dir) + " way: " + str(
+                #     target_dir))
         # print(str(self.dir) + " : " + str(target_dir))
         self.image, self.rect = rot_center(self.image_orig, self.rect,
                                            self.dir)
 
     def update_speed(self, target_dir):
-        if abs(self.dir - target_dir) < 3:
-            check_speed = 30 / abs(self.dir - target_dir)
-            self.speed = check_speed if check_speed < 1 else 1
+        if abs(angle_diff(self.dir, target_dir)) < 7:
+            # check_speed = 30 / abs(self.dir - target_dir)
+            check_speed = self.speed + 0.1
+            self.speed = check_speed if check_speed < self.maxspeed else self.maxspeed
+            # self.speed = check_speed if check_speed < 1 else 1
         else:
             self.speed = max(self.speed - 0.25, 0.25)
 
-        # print("speed - " + str(self.speed))
+            # print("speed - " + str(self.speed))
 
     # fix this function
-    def update(self, last_x, last_y):
-        # print(str(self.x) + " : " + str(self.y))
-        self.update_map_nav_index()
-        if self.current_nav_index < maps.FINISH_INDEX:
-            # calculate way direction
-            way_dir = self.find_way_direction()
-            self.change_dir(way_dir)
-            # print(way_dir)
-            self.update_speed(way_dir)
-            # controlled_car.set_speed(2)
+    def update(self, last_x, last_y, app):
+        if not app.pause:
+            # print(self.dir)
+            if self.current_line_index < maps.FINISH_INDEX:
+                way_dir = self.find_way_direction()
+                barriers = app.barriers
+                traffic_lamps = app.traffic_lamps
+                ahead_thing = None
+                lamp_state = None
+                lamp_remain_time = None
+                ahead_distance = -1
+                for barrier in barriers:
+                    check_distance = self.check_distance(
+                        barrier.line_index, barrier.line_distance
+                    )
+                    if check_distance != -1 and \
+                            (ahead_distance > check_distance or ahead_distance == -1):
+                        ahead_distance = check_distance
+                        ahead_thing = 'barrier'
+                for traffic_lamp in traffic_lamps:
+                    check_distance = self.check_distance(
+                        traffic_lamp.line_index, traffic_lamp.line_distance
+                    )
+                    # if app.tick_index % 1 == 0 and traffic_lamp.line_index == 7:
+                    #     print('---')
+                    #     start_line_point = MAP_NAVS[self.current_line_index]
+                    #     current_distance = sqrt(pow(self.x - start_line_point[0], 2) +
+                    #                             pow(self.y - start_line_point[1], 2))
+                    #     current_line_index = self.current_line_index
+                        # print('car position: ' + str(self.x) + ' - ' + str(self.y))
+                        # print('line index:' + str(current_line_index) +
+                        #       ' - line distance: ' + str(current_distance))
+                        # print('lamp position: ' + str(traffic_lamp.map_x) + ' - ' +
+                        #       str(traffic_lamp.map_y))
+                        # print('lamp index:' + str(traffic_lamp.line_index) +
+                        #       ' - lamp distance: ' + str(traffic_lamp.line_distance))
+                        # print(check_distance)
+                        # print('---')
+                    if check_distance != -1 and \
+                            (ahead_distance > check_distance or ahead_distance == -1):
+                        ahead_distance = check_distance
+                        ahead_thing = data_input.TRAFFIC_LAMP
+                        if traffic_lamp.status == TrafficLamp.RED:
+                            lamp_state = data_input.LAMP_RED
+                        if traffic_lamp.status == TrafficLamp.GREEN:
+                            lamp_state = data_input.LAMP_GREEN
+                        if traffic_lamp.status == TrafficLamp.YELLOW:
+                            lamp_state = data_input.LAMP_YELLOW
+                        lamp_remain_time = traffic_lamp.remaining_time
+                # input: ahead_thing, ahead_distance, direction, lamp_status
+                if ahead_thing is None:
+                    ahead_thing = 'barrier'
+                    ahead_distance = 1000
+                diff_degree = abs(angle_diff(self.dir, way_dir))
+                if app.tick_index % 30 == 0:
+                    speed = fuzzy_engine.set_speed(ahead_thing, ahead_distance, diff_degree,
+                                                   lamp_state, lamp_remain_time)
+                self.update_map_line_index()
+                # calculate way direction
+                self.change_dir(way_dir)
+                self.update_speed(way_dir)
+                # controlled_car.set_speed(2)
+            else:
+                self.set_speed(0)
+            self.x = self.x + self.speed * math.cos(math.radians(self.dir))
+            self.y = self.y - self.speed * math.sin(math.radians(self.dir))
+
+    def check_distance(self, thing_line_index, thing_line_distance):
+        if self.current_line_index > thing_line_index:
+            return -1
+        elif self.current_line_index == thing_line_index:
+            start_line_point = MAP_NAVS[self.current_line_index]
+            current_distance = sqrt(pow(self.x - start_line_point[0], 2) +
+                                    pow(self.y - start_line_point[1], 2))
+            if current_distance < thing_line_distance:
+                return thing_line_distance - current_distance
+            else:
+                return -1
         else:
-            self.set_speed(0)
-        self.x = self.x + self.speed * math.cos(math.radians(270 - self.dir))
-        self.y = self.y + self.speed * math.sin(math.radians(270 - self.dir))
+            start_line_point = MAP_NAVS[self.current_line_index]
+            current_distance = sqrt(pow(self.x - start_line_point[0], 2) +
+                                    pow(self.y - start_line_point[1], 2))
+            current_line_index = self.current_line_index
+            current_line_length = Car.get_line_length(MAP_NAVS[current_line_index],
+                                                      MAP_NAVS[current_line_index + 1])
+            distance = current_line_length - current_distance
+            current_line_index += 1
+            while current_line_index < thing_line_index:
+                distance += Car.get_line_length(MAP_NAVS[current_line_index],
+                                                MAP_NAVS[current_line_index + 1])
+                current_line_index += 1
+            distance += thing_line_distance
+            return distance
+
+    @staticmethod
+    def get_line_length(start_point, end_point):
+        return sqrt(pow(end_point[0] - start_point[0], 2) +
+                    pow(end_point[1] - start_point[1], 2))
