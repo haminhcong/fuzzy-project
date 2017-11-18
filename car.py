@@ -28,7 +28,7 @@ import pygame
 from math import atan2, degrees, pi, sqrt
 import maps
 from traffic_lamp import TrafficLamp
-from fuzzy_logic_engine import data_input, fuzzy_engine
+from fuzzy_logic_engine import data_input, fuzzy_logic_engine
 from loader import load_image
 from maps import MAP_NAVS
 from utils import calculate_angel, angle_diff, add_angle
@@ -194,16 +194,16 @@ class Car(pygame.sprite.Sprite):
         self.image, self.rect = rot_center(self.image_orig, self.rect,
                                            self.dir)
 
-    def update_speed(self, target_dir):
-        if abs(angle_diff(self.dir, target_dir)) < 7:
-            # check_speed = 30 / abs(self.dir - target_dir)
-            check_speed = self.speed + 0.1
-            self.speed = check_speed if check_speed < self.maxspeed else self.maxspeed
-            # self.speed = check_speed if check_speed < 1 else 1
-        else:
-            self.speed = max(self.speed - 0.25, 0.25)
+        # def update_speed(self, target_dir):
+        #     if abs(angle_diff(self.dir, target_dir)) < 7:
+        #         # check_speed = 30 / abs(self.dir - target_dir)
+        #         check_speed = self.speed + 0.1
+        #         self.speed = check_speed if check_speed < self.maxspeed else self.maxspeed
+        #         # self.speed = check_speed if check_speed < 1 else 1
+        #     else:
+        #         self.speed = max(self.speed - 0.25, 0.25)
 
-            # print("speed - " + str(self.speed))
+        # print("speed - " + str(self.speed))
 
     # fix this function
     def update(self, last_x, last_y, app):
@@ -229,21 +229,6 @@ class Car(pygame.sprite.Sprite):
                     check_distance = self.check_distance(
                         traffic_lamp.line_index, traffic_lamp.line_distance
                     )
-                    # if app.tick_index % 1 == 0 and traffic_lamp.line_index == 7:
-                    #     print('---')
-                    #     start_line_point = MAP_NAVS[self.current_line_index]
-                    #     current_distance = sqrt(pow(self.x - start_line_point[0], 2) +
-                    #                             pow(self.y - start_line_point[1], 2))
-                    #     current_line_index = self.current_line_index
-                        # print('car position: ' + str(self.x) + ' - ' + str(self.y))
-                        # print('line index:' + str(current_line_index) +
-                        #       ' - line distance: ' + str(current_distance))
-                        # print('lamp position: ' + str(traffic_lamp.map_x) + ' - ' +
-                        #       str(traffic_lamp.map_y))
-                        # print('lamp index:' + str(traffic_lamp.line_index) +
-                        #       ' - lamp distance: ' + str(traffic_lamp.line_distance))
-                        # print(check_distance)
-                        # print('---')
                     if check_distance != -1 and \
                             (ahead_distance > check_distance or ahead_distance == -1):
                         ahead_distance = check_distance
@@ -260,13 +245,13 @@ class Car(pygame.sprite.Sprite):
                     ahead_thing = 'barrier'
                     ahead_distance = 1000
                 diff_degree = abs(angle_diff(self.dir, way_dir))
-                if app.tick_index % 30 == 0:
-                    speed = fuzzy_engine.set_speed(ahead_thing, ahead_distance, diff_degree,
-                                                   lamp_state, lamp_remain_time)
+                speed = fuzzy_logic_engine.set_speed(ahead_thing, ahead_distance, diff_degree,
+                                                     lamp_state, lamp_remain_time)
                 self.update_map_line_index()
                 # calculate way direction
                 self.change_dir(way_dir)
-                self.update_speed(way_dir)
+                self.set_speed(speed)
+                # self.update_speed(way_dir)
                 # controlled_car.set_speed(2)
             else:
                 self.set_speed(0)
