@@ -3,26 +3,30 @@ from fuzzy_logic_engine.fuzzification.fuzzy_value \
     import FuzzyValue, RED_FUZZY_SET, LESS_RED_FUZZY_SET, YELLOW_FUZZY_SET, \
     GREEN_FUZZY_SET, LESS_GREEN_FUZZY_SET
 
+from ..fuzzy_info import RED_FUZZY_INFO, LESS_RED_FUZZY_INFO, YELLOW_FUZZY_INFO, \
+    LESS_GREEN_FUZZY_INFO, GREEN_FUZZY_INFO
+
 
 # lamp truth_value
 # remaining_time: in tick (1/60s)
 # red fuzzy_function:
 def calculate_red_truth_value(lamp_state, remaining_time):
     if lamp_state == LAMP_RED:
-        if remaining_time >= 300:
+        if remaining_time >= RED_FUZZY_INFO[1]:
             return 1.0
         else:
-            return 1.0 * remaining_time / 300
+            return 1.0 * remaining_time / RED_FUZZY_INFO[1]
     else:
         return 0.0
 
 
 def calculate_less_red_truth_value(lamp_state, remaining_time):
     if lamp_state == LAMP_RED:
-        if remaining_time <= 200:
+        if remaining_time <= LESS_RED_FUZZY_INFO[1]:
             return 1.0
-        elif 200 < remaining_time <= 600:
-            return 1.0 * (600 - remaining_time) / 400
+        elif LESS_RED_FUZZY_INFO[1] < remaining_time <= LESS_RED_FUZZY_INFO[2]:
+            return 1.0 * (LESS_RED_FUZZY_INFO[2] - remaining_time) / \
+                   (LESS_RED_FUZZY_INFO[2] - LESS_RED_FUZZY_INFO[1])
         else:
             return 0.0
     else:
@@ -38,10 +42,11 @@ def calculate_yellow_truth_value(lamp_state, remaining_time):
 
 def calculate_less_green_truth_value(lamp_state, remaining_time):
     if lamp_state == LAMP_GREEN:
-        if remaining_time <= 300:
+        if remaining_time <= LESS_GREEN_FUZZY_INFO[1]:
             return 1.0
-        elif 300 < remaining_time <= 600:
-            return 1.0 * (600 - remaining_time) / 300
+        elif LESS_GREEN_FUZZY_INFO[1] < remaining_time <= LESS_GREEN_FUZZY_INFO[2]:
+            return 1.0 * (LESS_GREEN_FUZZY_INFO[2] - remaining_time) / \
+                   (LESS_GREEN_FUZZY_INFO[2]-LESS_GREEN_FUZZY_INFO[1])
         else:
             return 0.0
     else:
@@ -50,10 +55,10 @@ def calculate_less_green_truth_value(lamp_state, remaining_time):
 
 def calculate_green_truth_value(lamp_state, remaining_time):
     if lamp_state == LAMP_GREEN:
-        if remaining_time >= 600:
+        if remaining_time >= GREEN_FUZZY_INFO[1]:
             return 1.0
         else:
-            return 1.0 * remaining_time / 600
+            return 1.0 * remaining_time / GREEN_FUZZY_INFO[1]
     else:
         return 0.0
 

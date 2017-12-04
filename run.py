@@ -3,6 +3,7 @@ import sys
 import maps
 import camera
 import car
+import random
 import traffic_lamp
 import barrier
 from button import AddBarrierButton
@@ -69,17 +70,15 @@ class FuzzyCarApp():
 
         self.traffic_lamps = pygame.sprite.Group()
 
-        traffic_lamp1 = traffic_lamp.TrafficLamp(line_index=7, distance=50, dir=90)
-        traffic_lamp2 = traffic_lamp.TrafficLamp(line_index=12, distance=20, dir=90)
-        traffic_lamp3 = traffic_lamp.TrafficLamp(line_index=20, distance=30, dir=90)
-        traffic_lamp4 = traffic_lamp.TrafficLamp(line_index=23, distance=10, dir=90)
-        traffic_lamp5 = traffic_lamp.TrafficLamp(line_index=28, distance=10, dir=90)
+        traffic_lamp1 = traffic_lamp.TrafficLamp(line_index=random.randint(5,10), distance=50, dir=90)
+        traffic_lamp2 = traffic_lamp.TrafficLamp(line_index=random.randint(11,15), distance=20, dir=90)
+        traffic_lamp3 = traffic_lamp.TrafficLamp(line_index=random.randint(26,29), distance=10, dir=90)
+        traffic_lamp4 = traffic_lamp.TrafficLamp(line_index=random.randint(20,25), distance=10, dir=90)
 
         self.traffic_lamps.add(traffic_lamp1)
         self.traffic_lamps.add(traffic_lamp2)
         self.traffic_lamps.add(traffic_lamp3)
         self.traffic_lamps.add(traffic_lamp4)
-        self.traffic_lamps.add(traffic_lamp5)
 
         self.barriers = pygame.sprite.Group()
         # test_barrier = barrier.Barrier(1742, 462, remaining_time=4000)

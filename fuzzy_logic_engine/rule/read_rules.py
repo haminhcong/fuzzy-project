@@ -3,7 +3,7 @@ import xlrd
 
 def read_light_rule():
     light_rule = []
-    with xlrd.open_workbook('fuzzy_logic_engine/rule/fuzzy_rule.xlsx') as book:
+    with xlrd.open_workbook('knowledge_base/fuzzy_rule.xlsx') as book:
         sheet = book.sheet_by_index(1)
 
         distance = [x for x in sheet.col_values(1)]
@@ -19,9 +19,9 @@ def read_light_rule():
 
 def read_barrier_rule():
     barrier_rule = []
-    with xlrd.open_workbook('fuzzy_logic_engine/rule/fuzzy_rule.xlsx') as book:
+    with xlrd.open_workbook('knowledge_base/fuzzy_rule.xlsx') as book:
         sheet = book.sheet_by_index(0)
-
+        # k = sheet.row_values(0)
         distance = [x for x in sheet.col_values(1)]
         angle = [y for y in sheet.col_values(2)]
         speed = [z for z in sheet.col_values(3)]
